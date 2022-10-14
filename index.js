@@ -103,7 +103,7 @@ async function createDataAndTags(assetId, name, description, assetType, contentT
       { name: 'App-Name', value: 'SmartWeaveContract' },
       { name: 'App-Version', value: '0.3.0' },
       { name: 'Content-Type', value: "application/x.arweave-manifest+json" },
-      { name: 'Contract-Src', value: "gj8YXEbmONb_-q4bX28AhcO4POT39JwhLKez-YKV89k" },
+      { name: 'Contract-Src', value: "CCobTPEONmH0OaQvGYt47sIif-9F78Y2r1weg3X2owc" },
       { name: 'Title', value: name },
       { name: 'Description', value: description },
       { name: 'Type', value: assetType },
@@ -114,7 +114,7 @@ async function createDataAndTags(assetId, name, description, assetType, contentT
             [await arweave.wallets.jwkToAddress(jwk)]: 10000
           },
           contentType: contentType,
-          description: `DEPLOY WIKIPEDIA ${description}`,
+          description: `DEPLOY ${description}`,
           lastTransferTimestamp: null,
           lockTime: 0,
           maxSupply: 0,
