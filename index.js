@@ -29,11 +29,9 @@ const scrapePage = async (query) => {
   try {
     const content = await getPage(query);
     const html = parseHTML(await content.html(), content.title);
-    // createTransaction(html, tags)
     const tx = await arweave.createTransaction({
       data: html
     }, jwk)
-
     tx.addTag('Content-Type', 'text/html');
     try {
       await arweave.transactions.sign(tx, jwk)
@@ -104,6 +102,7 @@ async function createDataAndTags(assetId, name, description, assetType, contentT
       { name: 'App-Version', value: '0.3.0' },
       { name: 'Content-Type', value: "application/x.arweave-manifest+json" },
       { name: 'Contract-Src', value: "CCobTPEONmH0OaQvGYt47sIif-9F78Y2r1weg3X2owc" },
+      { name: 'Pool-Id', value: 'C5ZOKq9coCd5pDTMOXJ6cLgjvAzB7z7mbsV8WSuCAQ4' },
       { name: 'Title', value: name },
       { name: 'Description', value: description },
       { name: 'Type', value: assetType },
