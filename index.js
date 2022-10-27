@@ -5,6 +5,7 @@ import { parseHTML } from './utils/parse.js';
 import { WarpFactory } from 'warp-contracts';
 import { selectTokenHolder } from './utils/selectTokenHolder.js';
 import Arweave from 'arweave';
+import { setTimeout } from "timers/promises";
 
 const jwk = JSON.parse(fs.readFileSync("wallet.json").toString());
 const URL = 'https://gateway.redstone.finance/gateway/contracts/deploy'
@@ -14,6 +15,10 @@ const arweave = Arweave.init({
   protocol: 'https'
 })
 let bundlr = await new Bundlr.default("https://node2.bundlr.network", "arweave", jwk);
+
+const warp = WarpFactory.forMainnet();
+const contract = warp.contract("8Y9XTSDkdNVylhuDwdosZhvFFKr1hrhYjf3Vw-mQII0").connect(jwk);
+const { cachedValue } = await contract.readState()
 
 const getPage = async (query) => {
   let content
@@ -27,10 +32,8 @@ const getPage = async (query) => {
 }
 
 const scrapePage = async (query) => {
-  console.log(query)
   try {
     const content = await getPage(query);
-    console.log(content.title)
     const html = parseHTML(await content.html(), content.title);
     const categories = await content.categories()
     const newCats = categories.map(word => word.replace('Category:', ""));
@@ -43,6 +46,7 @@ const scrapePage = async (query) => {
       await arweave.transactions.sign(tx, jwk)
       const assetId = tx.id
       await arweave.transactions.post(tx)
+      console.log(content.title, assetId);
       const res = await createAtomicAsset(assetId, content.title, `${content.title} Wikipedia Page`, 'web-page', 'text/html', newCats);
       return res
     } catch (err) {
@@ -94,7 +98,6 @@ async function deployToWarp(atomicId, { data, tags }) {
         Accept: 'application/json'
       }
     })
-    // console.log("ATOMIC ID", tx.id)
     return { id: atomicId }
   } catch (err) {
     console.error(err)
@@ -103,14 +106,9 @@ async function deployToWarp(atomicId, { data, tags }) {
 
 async function createDataAndTags(assetId, name, description, assetType, contentType, categories) {
   try {
-
-    const warp = WarpFactory.forMainnet();
-    const contract = warp.contract("t6AAwEvvR-dbp_1FrSfJQsruLraJCobKl9qsJh9yb2M").connect(jwk);
-    const { cachedValue } = await contract.readState()
-
-
     const state = cachedValue.state
     const randomContributor = selectTokenHolder(state.tokens, state.totalSupply)
+    const timestamp = Date.now().toString()
     return {
       data: JSON.stringify({
         manifest: "arweave/paths",
@@ -122,15 +120,21 @@ async function createDataAndTags(assetId, name, description, assetType, contentT
         { name: 'App-Name', value: 'SmartWeaveContract' },
         { name: 'App-Version', value: '0.3.0' },
         { name: 'Content-Type', value: "application/x.arweave-manifest+json" },
-        { name: 'Contract-Src', value: "eLUFzkrDnqXRdmBZtSgz1Bgy8nKC8ED3DoC__PaBJj8" },
-        { name: 'Pool-Id', value: "Ah1NYwK2VpLa_Mi-DBiq6O6qoVgGo_i8UGLY3oERIlU" },
-        // { name: 'Pool-Id', value: "CCobTPEONmH0OaQvGYt47sIif-9F78Y2r1weg3X2owc" },
+        // UKRAINE/RUSSIA POOL
+        { name: 'Contract-Src', value: "TYwOwE2Oy45i9tXJmYGDe_U65-8aQjTTVc1taY22hOI" },
+        { name: 'Pool-Id', value: "8Y9XTSDkdNVylhuDwdosZhvFFKr1hrhYjf3Vw-mQII0" },
         { name: 'Title', value: name },
-        { name: 'Artefact-Name', value: `Wiki - ${assetId}` },
-        { name: 'Created-At', value: Date.now().toString() },
         { name: 'Description', value: description },
         { name: 'Type', value: assetType },
+        { name: "Artifact-Series", value: "Alex." },
+        { name: 'Artifact-Name', value: `Wiki - ${description}` },
+        { name: "Implements", value: "ANS-110" },
+        { name: "Topic", value: "Topic:Ukraine" },
+        { name: 'Initial-Owner', value: randomContributor },
+        { name: 'Date-Created', value: timestamp },
+        { name: 'Artifact-Type', value: "Alex-Webpage" },
         { name: 'Keywords', value: JSON.stringify(categories) },
+        { name: "Media-Ids", value: JSON.stringify({}) },
         {
           name: 'Init-State', value: JSON.stringify({
             ticker: "ATOMIC-ASSET-" + assetId,
@@ -138,49 +142,67 @@ async function createDataAndTags(assetId, name, description, assetType, contentT
               [randomContributor]: 1
             },
             contentType: contentType,
-            description: `DEPLOY ${description}`,
+            description: description,
             lastTransferTimestamp: null,
             lockTime: 0,
             maxSupply: 1,
-            name: "DEPLOY", // CHANGE THIS
-            title: "DEPLOY", // CHANGE THIS
-            transferable: true
+            title: `Alex Artifact - ${name}`,
+            name: `Artifact - ${name}`,
+            transferable: true,
+            dateCreated: timestamp,
+            owner: randomContributor
           })
-        }
-      ]
+        }]
     }
   } catch (err) {
     console.error(err)
   }
 }
 
-const assets = [
-  // '2022_Russian_invasion_of_Ukraine',
-  'Russo-Ukrainian_War',
-  'Battle_of_Avdiivka_(2022)',
-  'Battle_of_Romny',
-  'Battle_of_Hlukhiv',
-  // '2022_Snake_Island_campaign',
-  // 'Battle_of_Antonov_Airport'
+const searchTerms = [
+  "Ukraine",
+  "ukraine",
+  "Russia",
+  "russia",
+  "Ukraine Invasion",
+  "Donetsk",
+  "Luhansk",
+  "Donbas",
+  "Донецьк",
+  "Луганськ",
+  "Донба́с",
+  "Timeline of the 2022 Russian invasion of Ukraine",
+  "Russo-Ukrainian War"
 ]
 
-await Promise.all(assets.map(asset => {
-  return new Promise(resolve => {
-    setTimeout(() => resolve(), 2000)
-    resolve(scrapePage(asset))
-  })
-}))
-// await Promise.all(assets.map(asset => {
-//   setTimeout(async () => {
-//     try {
-//       const res = await scrapePage(asset)
-//       return res
-//     }
-//     catch (err) {
-//       console.error(err)
-//     }
-//   }, 2000)
-// }))
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
 
+async function main() {
 
-// scrapePage(process.argv[2])
+  // build assets
+  let articles = [];
+  for (let i = 0; i < searchTerms.length; i++) {
+
+    let a = await wiki.default({
+      apiUrl: 'https://wikipedia.org/w/api.php',
+      origin: null
+    }).search(searchTerms[i]);
+    articles = articles.concat(a.results);
+  }
+
+  articles = articles.filter(onlyUnique);
+
+  console.log(articles);
+  fs.writeFileSync('articles.txt', JSON.stringify(articles));
+  console.log("Processing articles: " + articles.length);
+
+  for (let i = 0; i < articles.length; i++) {
+    setTimeout(6000);
+    console.log(articles[i])
+    let res = await scrapePage(articles[i]);
+  }
+}
+
+main();
