@@ -54,7 +54,7 @@ const scrapePage = async (query) => {
 }
 
 const searchTerms = [
-  "Blockchain"
+  // Add search terms here
 ]
 
 function onlyUnique(value, index, self) {
