@@ -24,9 +24,6 @@ const scrapePage = async (query) => {
   try {
     const content = await getPage(query);
     const html = parseHTML(await content.html(), content.title, content.url());
-    const categories = await content.categories()
-    const newCats = categories.map(word => word.replace('Category:', ""));
-    // fs.writeFileSync('index.html', html)
     const tx = await arweave.createTransaction({
       data: html
     }, jwk)
@@ -55,6 +52,7 @@ const scrapePage = async (query) => {
 
 const searchTerms = [
   // Add search terms here
+  "Blockchain"
 ]
 
 function onlyUnique(value, index, self) {
