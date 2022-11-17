@@ -1,2 +1,4 @@
 wallet.json
 node_modules
+cache
+local/data
